@@ -262,6 +262,13 @@ namespace MarketTerror.GUI.ShoppingList
         this.request.NewConditional = null;
       }
 
+      if (this.request.NewDirect != null)
+      {
+        var (item, scope) = this.request.NewDirect.Value;
+        this.picker.Open(item, scope);
+        this.request.NewDirect = null;
+      }
+
       ImGui.Separator();
 
       if (bought + failed > 0)

@@ -247,6 +247,11 @@ namespace MarketTerror.GUI.ShoppingList
     /// <returns>The name, which no other group beside it shares.</returns>
     private static string NodeKey(ShoppingListNode node)
     {
+      if (node.Kind != null)
+      {
+        return FormattableString.Invariant($"k{(int)node.Kind.Value}");
+      }
+
       if (node.Scope != null)
       {
         return FormattableString.Invariant($"s{(int)node.Scope.Level}@{node.Scope.AnchorWorld}");
@@ -678,7 +683,9 @@ namespace MarketTerror.GUI.ShoppingList
     private void DrawNode(ShoppingListNode node, string key, int depth, ShoppingListRequest request)
     {
       var roll = RollUp.Of(node);
-      var item = ContextItem(node);
+
+      // A kind group hangs off the item's own row, which already carries the icon and the menu.
+      var item = node.Kind == null ? ContextItem(node) : null;
 
       ImGui.TableNextRow();
 
@@ -703,7 +710,7 @@ namespace MarketTerror.GUI.ShoppingList
       }
 
       this.DrawRollUp(roll, null);
-      this.DrawNodeActions(node, key);
+      this.DrawNodeActions(node, key, request);
 
       if (!open)
       {
@@ -769,12 +776,20 @@ namespace MarketTerror.GUI.ShoppingList
     /// </summary>
     /// <param name="node">The group the buttons belong to.</param>
     /// <param name="key">Where the group sits in the tree.</param>
-    private void DrawNodeActions(ShoppingListNode node, string key)
+    /// <param name="request">Where a click that has to open a popup is written down.</param>
+    private void DrawNodeActions(ShoppingListNode node, string key, ShoppingListRequest request)
     {
       var buttonSize = ButtonSize();
       var busy = this.plugin.ShoppingListBulkAdd.IsRunning || this.plugin.ShoppingListBuyer.IsRunning;
 
       ImGui.TableSetColumnIndex(5);
+
+      // An empty kind group has nothing to price or buy, so all it offers is the button that fills it.
+      if (node.Kind != null && node.Entries.Count == 0)
+      {
+        this.DrawAddButton(node, key, request, buttonSize, busy);
+        return;
+      }
 
       ImGui.BeginDisabled(busy);
       ImGui.PushFont(UiBuilder.IconFont);
@@ -796,6 +811,13 @@ namespace MarketTerror.GUI.ShoppingList
         canBuy ? $"Buy everything under this group, for {this.Gil(node.Total)} in all." : buyBlockedReason,
         ImGuiHoveredFlags.AllowWhenDisabled);
 
+      // A kind that can hold more than one entry keeps offering to add another.
+      if (node.Kind is ListingKind.Direct or ListingKind.Conditional)
+      {
+        ImGui.SameLine();
+        this.DrawAddButton(node, key, request, buttonSize, busy);
+      }
+
       if (refresh)
       {
         this.plugin.ShoppingListBulkAdd.StartRefresh(node.AllEntries.ToArray(), node.Label);
@@ -804,6 +826,55 @@ namespace MarketTerror.GUI.ShoppingList
       if (buy)
       {
         this.plugin.ShoppingListBuyer.BuyAll(node.AllEntries.ToArray());
+      }
+    }
+
+    /// <summary>
+    /// Draws the button that puts another entry of a kind group's kind on the list.
+    /// </summary>
+    /// <param name="node">The kind group the button belongs to.</param>
+    /// <param name="key">Where the group sits in the tree.</param>
+    /// <param name="request">Where a click that has to open a popup is written down.</param>
+    /// <param name="buttonSize">How big one button is.</param>
+    /// <param name="busy">True while a pricing or buy run is going.</param>
+    private void DrawAddButton(ShoppingListNode node, string key, ShoppingListRequest request, Vector2 buttonSize, bool busy)
+    {
+      var item = node.Item!.Value;
+      var scope = node.Scope!;
+      var kind = node.Kind!.Value;
+
+      ImGui.BeginDisabled(busy);
+      ImGui.PushFont(UiBuilder.IconFont);
+      var add = ImGui.Button($"{(char)FontAwesomeIcon.Plus}##shoplistadd{key}", buttonSize);
+      ImGui.PopFont();
+      ImGui.EndDisabled();
+      Utilities.HoverTooltip(
+        kind switch
+        {
+          ListingKind.Lowest => "Buy this market's cheapest listings of this item.",
+          ListingKind.Direct => "Buy one particular listing of this item in this market.",
+          _ => "Buy this market's listings of this item that a rule holds for.",
+        },
+        ImGuiHoveredFlags.AllowWhenDisabled);
+
+      if (!add)
+      {
+        return;
+      }
+
+      switch (kind)
+      {
+        case ListingKind.Lowest:
+          this.repriceWanted.Add(this.plugin.ShoppingList.AddLowest(item, scope, out _));
+          break;
+
+        case ListingKind.Direct:
+          request.NewDirect = (item, scope);
+          break;
+
+        default:
+          request.NewConditional = (item, scope);
+          break;
       }
     }
 

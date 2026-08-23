@@ -21,6 +21,16 @@ namespace MarketTerror.GUI.ShoppingList
   public static class ShoppingListNodes
   {
     /// <summary>
+    /// The kinds of entry every item and market on the list shows a group for, in the order they are drawn.
+    /// </summary>
+    private static readonly ListingKind[] Kinds =
+    {
+      ListingKind.Lowest,
+      ListingKind.Direct,
+      ListingKind.Conditional,
+    };
+
+    /// <summary>
     /// Groups the shopping list into the tree the window draws.
     /// </summary>
     /// <param name="store">The shopping list.</param>
@@ -95,7 +105,7 @@ namespace MarketTerror.GUI.ShoppingList
     }
 
     /// <summary>
-    /// Builds an item node holding entries.
+    /// Builds an item node holding the kind groups of one market.
     /// </summary>
     /// <param name="entries">The entries for one item.</param>
     /// <returns>The node.</returns>
@@ -103,7 +113,7 @@ namespace MarketTerror.GUI.ShoppingList
     {
       var item = entries[0].SourceItem;
 
-      return new ShoppingListNode(item.Name.ExtractText(), item, null, entries);
+      return new ShoppingListNode(item.Name.ExtractText(), item, null, KindLeaves(entries));
     }
 
     /// <summary>
@@ -121,7 +131,7 @@ namespace MarketTerror.GUI.ShoppingList
     }
 
     /// <summary>
-    /// Builds a scope node holding entries.
+    /// Builds a scope node holding the kind groups of one item.
     /// </summary>
     /// <param name="entries">The entries of one scope.</param>
     /// <param name="catalogue">The world catalogue, used to name the scope.</param>
@@ -130,7 +140,41 @@ namespace MarketTerror.GUI.ShoppingList
     {
       var scope = entries[0].Scope;
 
-      return new ShoppingListNode(scope.Display(catalogue), null, scope, entries);
+      return new ShoppingListNode(scope.Display(catalogue), null, scope, KindLeaves(entries));
+    }
+
+    /// <summary>
+    /// Puts one item and market's entries under one node per kind of entry.
+    /// </summary>
+    /// <param name="entries">The entries for one item in one market.</param>
+    /// <returns>The kind nodes, one for every kind whether it has entries or not.</returns>
+    /// <remarks>
+    /// Every kind is always there, so the row that adds an entry of a kind sits in the same place on
+    /// every item of the list rather than only where one has been added already.
+    /// </remarks>
+    private static ShoppingListNode[] KindLeaves(ListingEntry[] entries)
+    {
+      var item = entries[0].SourceItem;
+      var scope = entries[0].Scope;
+
+      return Kinds
+        .Select(k => new ShoppingListNode(KindLabel(k), item, scope, k, entries.Where(e => e.Kind == k).ToArray()))
+        .ToArray();
+    }
+
+    /// <summary>
+    /// Names a kind of entry the way its group reads.
+    /// </summary>
+    /// <param name="kind">The kind to name.</param>
+    /// <returns>The label.</returns>
+    private static string KindLabel(ListingKind kind)
+    {
+      return kind switch
+      {
+        ListingKind.Lowest => "Lowest",
+        ListingKind.Direct => "Direct",
+        _ => "Conditional",
+      };
     }
 
     /// <summary>

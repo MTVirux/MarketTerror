@@ -32,5 +32,11 @@ namespace MarketTerror.GUI.ShoppingList
     /// was asked for.
     /// </summary>
     public (Item Item, ListingScope Scope)? NewConditional { get; set; }
+
+    /// <summary>
+    /// Gets or sets the item and market a new direct entry is to be picked in, or null when none was
+    /// asked for.
+    /// </summary>
+    public (Item Item, ListingScope Scope)? NewDirect { get; set; }
   }
 }
