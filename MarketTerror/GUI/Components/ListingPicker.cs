@@ -15,6 +15,7 @@ namespace MarketTerror.GUI.Components
   using System.Threading.Tasks;
   using Dalamud.Bindings.ImGui;
   using Dalamud.Game.Text;
+  using Lumina.Excel.Sheets;
   using MarketTerror.Extensions;
   using MarketTerror.GUI.Theme;
   using MarketTerror.Models.ShoppingList;
@@ -57,6 +58,12 @@ namespace MarketTerror.GUI.Components
     private bool isDisposed;
 
     /// <summary>
+    /// True while the open entry is one the popup made rather than one already on the list, so
+    /// closing the popup without picking leaves nothing behind.
+    /// </summary>
+    private bool adding;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ListingPicker"/> class.
     /// </summary>
     /// <param name="plugin">The plugin instance.</param>
@@ -79,14 +86,19 @@ namespace MarketTerror.GUI.Components
     {
       ArgumentNullException.ThrowIfNull(entry);
 
-      this.CancelFetch();
+      this.Start(entry, false);
+    }
 
-      this.entry = entry;
-      this.opening = true;
-      this.failure = string.Empty;
-      this.candidates.Clear();
+    /// <summary>
+    /// Opens the popup to add a direct entry, which only reaches the list once a listing is picked.
+    /// </summary>
+    /// <param name="item">The item to buy.</param>
+    /// <param name="scope">The market to pick a listing from.</param>
+    public void Open(Item item, ListingScope scope)
+    {
+      ArgumentNullException.ThrowIfNull(scope);
 
-      this.StartFetch();
+      this.Start(new ListingEntry(item, scope, ListingKind.Direct), true);
     }
 
     /// <summary>
@@ -179,6 +191,24 @@ namespace MarketTerror.GUI.Components
       return Math.Max((width - ImGui.CalcTextSize(text).X) * 0.5f, 0.0f);
     }
 
+    /// <summary>
+    /// Points the popup at an entry and starts fetching the listings to choose from.
+    /// </summary>
+    /// <param name="open">The entry to pick a listing for.</param>
+    /// <param name="isNew">True when the entry is not on the list yet.</param>
+    private void Start(ListingEntry open, bool isNew)
+    {
+      this.CancelFetch();
+
+      this.entry = open;
+      this.adding = isNew;
+      this.opening = true;
+      this.failure = string.Empty;
+      this.candidates.Clear();
+
+      this.StartFetch();
+    }
+
     private void CancelFetch()
     {
       this.cancellation?.Cancel();
@@ -212,6 +242,7 @@ namespace MarketTerror.GUI.Components
     {
       this.CancelFetch();
       this.entry = null;
+      this.adding = false;
       this.loading = false;
       this.candidates.Clear();
       this.failure = string.Empty;
@@ -307,7 +338,7 @@ namespace MarketTerror.GUI.Components
     }
 
     /// <summary>
-    /// Points the entry at a listing and closes the popup.
+    /// Points the entry at a listing and closes the popup, putting a new entry on the list first.
     /// </summary>
     /// <param name="listing">The listing the entry now buys.</param>
     private void Choose(ResolvedListing listing)
@@ -319,8 +350,15 @@ namespace MarketTerror.GUI.Components
         return;
       }
 
-      open.Target = listing;
-      this.plugin.ShoppingList.ApplyMatches(open, new[] { listing });
+      if (this.adding)
+      {
+        this.plugin.ShoppingList.AddDirect(open.SourceItem, open.Scope, listing);
+      }
+      else
+      {
+        open.Target = listing;
+        this.plugin.ShoppingList.ApplyMatches(open, new[] { listing });
+      }
 
       this.Close();
       ImGui.CloseCurrentPopup();

@@ -45,19 +45,23 @@ namespace MarketTerror.GUI.ShoppingList
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ShoppingListNode"/> class holding entries.
+    /// Initializes a new instance of the <see cref="ShoppingListNode"/> class holding the entries of
+    /// one kind, which can be none of them.
     /// </summary>
     /// <param name="label">What the node's row reads as.</param>
-    /// <param name="item">The item the node groups by, or null when it groups by scope.</param>
-    /// <param name="scope">The scope the node groups by, or null when it groups by item.</param>
-    /// <param name="entries">The entries filed under it.</param>
-    public ShoppingListNode(string label, Item? item, ListingScope? scope, IReadOnlyList<ListingEntry> entries)
+    /// <param name="item">The item the entries under it buy.</param>
+    /// <param name="scope">The market the entries under it shop in.</param>
+    /// <param name="kind">The kind of entry the node stands for.</param>
+    /// <param name="entries">The entries of that kind, which can be none.</param>
+    public ShoppingListNode(string label, Item item, ListingScope scope, ListingKind kind, IReadOnlyList<ListingEntry> entries)
     {
+      ArgumentNullException.ThrowIfNull(scope);
       ArgumentNullException.ThrowIfNull(entries);
 
       this.Label = label ?? string.Empty;
       this.Item = item;
       this.Scope = scope;
+      this.Kind = kind;
       this.Children = Array.Empty<ShoppingListNode>();
       this.Entries = entries;
     }
@@ -70,6 +74,13 @@ namespace MarketTerror.GUI.ShoppingList
 
     /// <summary>Gets the scope the node groups by, or null when it groups by item.</summary>
     public ListingScope? Scope { get; }
+
+    /// <summary>Gets the kind of entry the node stands for, or null when it is not a kind group.</summary>
+    /// <remarks>
+    /// A kind group is always drawn, whether it has entries or not, so every item and market on the
+    /// list offers each kind of entry in the same place.
+    /// </remarks>
+    public ListingKind? Kind { get; }
 
     /// <summary>Gets the groups underneath the node, which is empty when the node holds entries.</summary>
     public IReadOnlyList<ShoppingListNode> Children { get; }
