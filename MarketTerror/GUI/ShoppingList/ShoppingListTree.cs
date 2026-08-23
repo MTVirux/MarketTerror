@@ -87,6 +87,15 @@ namespace MarketTerror.GUI.ShoppingList
     private readonly HashSet<ListingEntry> expanded = new HashSet<ListingEntry>();
 
     /// <summary>
+    /// The entries changed on their own row that are waiting to be priced again.
+    /// </summary>
+    /// <remarks>
+    /// A set rather than one entry, so changing an entry's quality and then another's count prices
+    /// both instead of the second change losing the first.
+    /// </remarks>
+    private readonly HashSet<ListingEntry> repriceWanted = new HashSet<ListingEntry>();
+
+    /// <summary>
     /// The entry a buy run was last seen on, so each one is only opened once as the run walks the list.
     /// </summary>
     private ListingEntry? followed;
@@ -102,14 +111,9 @@ namespace MarketTerror.GUI.ShoppingList
     private int countDraft = 1;
 
     /// <summary>
-    /// The entry whose quality was last cycled and is still waiting to be priced again.
+    /// The entry whose quality button the pointer is still on, whose pricing therefore waits.
     /// </summary>
-    private ListingEntry? qualityCycled;
-
-    /// <summary>
-    /// True while the pointer is still on the cycled entry's quality button.
-    /// </summary>
-    private bool qualityHeld;
+    private ListingEntry? repriceHeld;
 
     /// <summary>
     /// The skin the window is drawing in, kept for as long as the frame lasts.
@@ -161,7 +165,7 @@ namespace MarketTerror.GUI.ShoppingList
       // An entry that has been taken off the list stops counting as open.
       this.expanded.IntersectWith(nodes.SelectMany(n => n.AllEntries));
       this.ForgetDroppedEntries(nodes);
-      this.qualityHeld = false;
+      this.repriceHeld = null;
 
       if (!ImGui.BeginTable("shoppingList", 6, TableFlags | ImGuiTableFlags.ScrollY, new Vector2(0, tableHeight)))
       {
@@ -198,7 +202,7 @@ namespace MarketTerror.GUI.ShoppingList
 
       ImGui.EndTable();
 
-      this.SettleQualityCycle();
+      this.SettleReprice();
     }
 
     /// <summary>
@@ -1135,8 +1139,17 @@ namespace MarketTerror.GUI.ShoppingList
       {
         // The box closing is what settles the number, so a count being typed is never read half
         // written and trimmed down to what its first digit said.
+        var grew = this.countDraft > entry.Count;
+
         this.plugin.ShoppingList.SetCount(entry, this.countDraft);
         this.countEditing = null;
+
+        // Asking for fewer is served out of what the entry already holds, so only asking for more
+        // has anything to fetch.
+        if (grew)
+        {
+          this.repriceWanted.Add(entry);
+        }
       }
     }
 
@@ -1191,9 +1204,9 @@ namespace MarketTerror.GUI.ShoppingList
       var cycled = ImGui.Button($"{entry.Quality.Label()}##shoplistquality{key}", buttonSize);
       ImGui.EndDisabled();
 
-      if (this.qualityCycled == entry && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+      if (this.repriceWanted.Contains(entry) && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
       {
-        this.qualityHeld = true;
+        this.repriceHeld = entry;
       }
 
       Utilities.HoverTooltip(
@@ -1211,8 +1224,8 @@ namespace MarketTerror.GUI.ShoppingList
       }
 
       this.plugin.ShoppingList.SetQuality(entry, entry.Quality.Next());
-      this.qualityCycled = entry;
-      this.qualityHeld = true;
+      this.repriceWanted.Add(entry);
+      this.repriceHeld = entry;
     }
 
     /// <summary>
@@ -1221,7 +1234,7 @@ namespace MarketTerror.GUI.ShoppingList
     /// <param name="nodes">The groups being drawn.</param>
     private void ForgetDroppedEntries(IReadOnlyList<ShoppingListNode> nodes)
     {
-      if (this.countEditing == null && this.qualityCycled == null)
+      if (this.countEditing == null && this.repriceWanted.Count == 0)
       {
         return;
       }
@@ -1233,28 +1246,23 @@ namespace MarketTerror.GUI.ShoppingList
         this.countEditing = null;
       }
 
-      if (this.qualityCycled != null && !live.Contains(this.qualityCycled))
-      {
-        this.qualityCycled = null;
-      }
+      this.repriceWanted.IntersectWith(live);
     }
 
     /// <summary>
-    /// Prices a cycled entry again once the pointer has left its quality button.
+    /// Prices the entries changed on their own row again, once each has settled.
     /// </summary>
     /// <remarks>
-    /// Waiting is what makes a walk from either quality round to high and on to normal cost one
-    /// pricing rather than three. A row scrolled out of sight is left too, since a button that is
-    /// not drawn cannot be hovered.
+    /// An entry whose quality button is still under the pointer waits, which is what makes a walk
+    /// from either quality round to high and on to normal cost one pricing rather than three. A row
+    /// scrolled out of sight settles too, since a button that is not drawn cannot be hovered.
     /// </remarks>
-    private void SettleQualityCycle()
+    private void SettleReprice()
     {
-      if (this.qualityCycled == null || this.qualityHeld)
+      if (this.repriceWanted.Count == 0)
       {
         return;
       }
-
-      var entry = this.qualityCycled;
 
       if (this.plugin.ShoppingListBulkAdd.IsRunning || this.plugin.ShoppingListBuyer.IsRunning)
       {
@@ -1262,8 +1270,17 @@ namespace MarketTerror.GUI.ShoppingList
         return;
       }
 
-      this.qualityCycled = null;
-      this.plugin.ShoppingListBulkAdd.StartRefresh(new[] { entry }, entry.SourceItem.Name.ExtractText());
+      var settled = this.repriceWanted.Where(e => e != this.repriceHeld).ToArray();
+
+      if (settled.Length == 0)
+      {
+        return;
+      }
+
+      this.repriceWanted.ExceptWith(settled);
+      this.plugin.ShoppingListBulkAdd.StartRefresh(
+        settled,
+        settled.Length == 1 ? settled[0].SourceItem.Name.ExtractText() : null);
     }
 
     /// <summary>
