@@ -17,9 +17,9 @@ namespace MarketTerror.Services
   /// <remarks>
   /// A run is ordered by how far it has to travel - the current world first, then the rest of the
   /// data centre, then the rest of the region, then anywhere else with Oceania last - and listings on
-  /// the same world are kept together so each world is only travelled to once. An entry's listings
-  /// are spread through that order along with everyone else's, since the entry itself is never
-  /// somewhere: only its listings are.
+  /// the same world, and worlds on the same data centre, are kept together so each is only travelled
+  /// to once. An entry's listings are spread through that order along with everyone else's, since
+  /// the entry itself is never somewhere: only its listings are.
   /// </remarks>
   public sealed class ShoppingListBuyer : IDisposable
   {
@@ -389,15 +389,25 @@ namespace MarketTerror.Services
 
     private IEnumerable<BuyJob> Order(IEnumerable<BuyJob> jobs)
     {
+      // Going from one visited data centre to another passes through the home world, so worlds are
+      // grouped by data centre before their names are compared.
       return jobs
-        .Select(job => new
+        .Select(job =>
         {
-          Job = job,
-          Tier = this.TravelTier(job.World),
-          Region = this.plugin.WorldCatalogue.Find(job.World)?.Region ?? string.Empty,
+          var world = this.plugin.WorldCatalogue.Find(job.World);
+
+          return new
+          {
+            Job = job,
+            Tier = this.TravelTier(job.World),
+            Region = world?.Region ?? string.Empty,
+            DataCentre = world?.DataCentre ?? string.Empty,
+          };
         })
         .OrderBy(step => step.Tier)
         .ThenBy(step => TieBreak(step.Region), StringComparer.Ordinal)
+        .ThenBy(step => step.Region, StringComparer.Ordinal)
+        .ThenBy(step => step.DataCentre, StringComparer.Ordinal)
         .ThenBy(step => step.Job.World, StringComparer.Ordinal)
         .Select(step => step.Job);
     }
