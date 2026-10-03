@@ -214,7 +214,7 @@ namespace MarketTerror.Services
       ArgumentNullException.ThrowIfNull(entry);
       ArgumentNullException.ThrowIfNull(listing);
 
-      if (listing.Gone || !this.CanBuy(entry, out _))
+      if (listing.Gone || listing.Bought || !this.CanBuy(entry, out _))
       {
         return;
       }
@@ -324,8 +324,11 @@ namespace MarketTerror.Services
     /// <returns>One job per listing the entry still has on sale.</returns>
     private static BuyJob[] Jobs(ListingEntry entry)
     {
+      var live = entry.Live.ToArray();
+
       // Two runs without a refresh in between would otherwise report the first run's results again.
-      foreach (var listing in entry.Matches)
+      // Bought listings keep theirs, so they stay off the board.
+      foreach (var listing in live)
       {
         listing.Outcome = BuyOutcome.None;
         listing.FailReason = string.Empty;
@@ -333,7 +336,7 @@ namespace MarketTerror.Services
       }
 
       // Cheapest first, so a run that is cancelled part way through has bought the best of them.
-      return entry.Live
+      return live
         .OrderBy(listing => listing.Price)
         .Select(listing => new BuyJob(entry, listing))
         .ToArray();

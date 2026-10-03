@@ -74,8 +74,8 @@ namespace MarketTerror.Models.ShoppingList
     [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "Rewritten wholesale by every refresh")]
     public List<ResolvedListing> Matches { get; } = new List<ResolvedListing>();
 
-    /// <summary>Gets the resolved listings a buy run may still try.</summary>
-    public IEnumerable<ResolvedListing> Live => this.Matches.Where(m => !m.Gone);
+    /// <summary>Gets the resolved listings still on sale, which a buy run may still try.</summary>
+    public IEnumerable<ResolvedListing> Live => this.Matches.Where(m => !m.Gone && !m.Bought);
 
     /// <summary>Gets the cheapest price per unit the entry buys at.</summary>
     public double Price => this.Live.Select(m => m.Price).DefaultIfEmpty(0).Min();

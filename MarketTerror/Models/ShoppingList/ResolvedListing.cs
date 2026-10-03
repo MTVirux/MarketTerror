@@ -95,6 +95,9 @@ namespace MarketTerror.Models.ShoppingList
     /// <remarks>Not saved to the configuration; it only lasts until the row is priced again.</remarks>
     public double? Paid { get; set; }
 
+    /// <summary>Gets a value indicating whether the listing has been bought.</summary>
+    public bool Bought => this.Paid.HasValue;
+
     /// <summary>Gets the gil the whole listing costs.</summary>
     public double Total => this.Price * this.Quantity;
 
