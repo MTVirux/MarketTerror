@@ -261,6 +261,17 @@ namespace MarketTerror
     public MarketTerrorConfig Config { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether windows may show themselves when the plugin starts.
+    /// </summary>
+    /// <remarks>Only debug builds have the setting, so release builds keep showing what was left open.</remarks>
+    public bool ShowWindowsOnStart =>
+#if DEBUG
+      this.Config.OpenOnStart;
+#else
+      true;
+#endif
+
+    /// <summary>
     /// Gets a value indicating whether the Lifestream plugin can be used right now.
     /// </summary>
     public bool IsLifestreamAvailable => this.FindPlugin(LifestreamInternalName)?.IsLoaded == true;

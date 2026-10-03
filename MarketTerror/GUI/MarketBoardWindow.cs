@@ -157,6 +157,12 @@ namespace MarketTerror.GUI
     }
 
     /// <inheritdoc/>
+    public override void OnOpen()
+    {
+      this.board.Manager?.ShowDetached();
+    }
+
+    /// <inheritdoc/>
     public override void PreDraw()
     {
       // Draw is skipped while the window is collapsed, so the tab bar rect is dropped here, where

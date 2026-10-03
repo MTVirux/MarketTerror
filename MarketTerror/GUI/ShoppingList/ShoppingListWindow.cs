@@ -99,6 +99,10 @@ namespace MarketTerror.GUI.ShoppingList
       this.picker = new ListingPicker(this.Plugin);
       this.tree = new ShoppingListTree(this.Plugin);
       this.editor = new ConditionEditor(this.Plugin);
+
+      // The stored entries count as already seen, so they don't bring the window up on their own.
+      this.hidden = !this.Plugin.ShowWindowsOnStart;
+      this.lastCount = this.Plugin.ShoppingList.Count;
     }
 
     /// <summary>

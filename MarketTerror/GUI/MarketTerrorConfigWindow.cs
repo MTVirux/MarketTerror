@@ -164,7 +164,7 @@ namespace MarketTerror.GUI
       ImGui.NewLine();
 
       this.SectionHeading("Debug");
-      this.Checkbox("Open window on start", "Toggles whether the main window opens automatically on plugin start in debug builds", this.Plugin.Config.OpenOnStart, (v) => this.Plugin.Config.OpenOnStart = v);
+      this.Checkbox("Open window on start", "Toggles whether the plugin's windows open automatically on plugin start in debug builds", this.Plugin.Config.OpenOnStart, (v) => this.Plugin.Config.OpenOnStart = v);
       this.Checkbox("Remember last opened item", "Toggles whether the item that was open last is reselected on plugin start in debug builds", this.Plugin.Config.RememberLastItem, (v) => this.Plugin.Config.RememberLastItem = v);
 #endif
 

@@ -170,7 +170,19 @@ namespace MarketTerror.GUI
       this.plugin.PluginInterface.SavePluginConfig(this.plugin.Config);
     }
 
-    private void DetachNow(ItemListTab tab, bool grabbed)
+    /// <summary>
+    /// Shows every detached window that is hidden.
+    /// </summary>
+    /// <remarks>Detached windows left hidden on start come back with the main window.</remarks>
+    internal void ShowDetached()
+    {
+      foreach (var window in this.detached)
+      {
+        window.IsOpen = true;
+      }
+    }
+
+    private void DetachNow(ItemListTab tab, bool grabbed, bool open = true)
     {
       var state = this.plugin.Config.DetachedBoards.FirstOrDefault(s => s.Tab == tab);
 
@@ -197,7 +209,7 @@ namespace MarketTerror.GUI
 
       var window = new DetachedBoardWindow(this.Services, board, tab, state, this.Reattach)
       {
-        IsOpen = true,
+        IsOpen = open,
         Grabbed = grabbed,
       };
 
@@ -310,7 +322,7 @@ namespace MarketTerror.GUI
           continue;
         }
 
-        this.DetachNow(state.Tab, grabbed: false);
+        this.DetachNow(state.Tab, grabbed: false, open: this.plugin.ShowWindowsOnStart);
       }
     }
   }
