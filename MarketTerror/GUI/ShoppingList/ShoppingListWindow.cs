@@ -91,7 +91,6 @@ namespace MarketTerror.GUI.ShoppingList
 
       this.Flags = ImGuiWindowFlags.NoScrollbar;
       this.IsOpen = true;
-      this.RespectCloseHotkey = false;
       this.ShowCloseButton = true;
       this.Size = MinWindowSize;
       this.SizeCondition = ImGuiCond.FirstUseEver;
@@ -170,6 +169,9 @@ namespace MarketTerror.GUI.ShoppingList
         MinimumSize = MinWindowSize * scale,
         MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
       };
+
+      // Escape on an open popup should only close that popup, not hide the whole window behind it.
+      this.RespectCloseHotkey = !ImGui.IsPopupOpen(string.Empty, ImGuiPopupFlags.AnyPopupId | ImGuiPopupFlags.AnyPopupLevel);
 
       this.themeScope = this.theme.Push();
     }
