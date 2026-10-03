@@ -5,7 +5,7 @@
   "Punchline": "Custom build of Market Board Plugin",
   "Description": "Custom build of Market Board Plugin with Lifestream and FFXIVMT sales data.",
   "InternalName": "MarketTerror",
-  "AssemblyVersion": "1.69.420.1345",
+  "AssemblyVersion": "1.69.420.1346",
   "RepoUrl": "https://github.com/MTVirux/MarketTerror",
   "ApplicableVersion": "any",
   "DalamudApiLevel": 15,
