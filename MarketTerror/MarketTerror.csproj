@@ -5,9 +5,9 @@
     <DocumentationFile>bin/$(Configuration)/$(TargetFramework)/$(AssemblyName).xml</DocumentationFile>
     <DebugType>PdbOnly</DebugType>
     <GenerateFullPaths>true</GenerateFullPaths>
-    <AssemblyVersion>1.69.420.1348</AssemblyVersion>
-    <FileVersion>1.69.420.1348</FileVersion>
-    <Version>1.69.420.1348</Version>
+    <AssemblyVersion>1.69.420.1349</AssemblyVersion>
+    <FileVersion>1.69.420.1349</FileVersion>
+    <Version>1.69.420.1349</Version>
     <Company>João Fraga</Company>
     <Description>Market Terror - market board plugin for Dalamud.</Description>
     <Copyright>Copyright (c) João Fraga. All rights reserved.</Copyright>
