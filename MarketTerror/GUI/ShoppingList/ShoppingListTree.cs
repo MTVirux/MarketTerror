@@ -305,7 +305,7 @@ namespace MarketTerror.GUI.ShoppingList
     /// <returns>The listing, or null when the entry draws its listings under it instead.</returns>
     private static ResolvedListing? InlineListing(ListingEntry entry)
     {
-      return HasListingRows(entry) || entry.Matches.Count == 0
+      return HasListingRows(entry) || entry.Matches.Count == 0 || entry.Matches[0].Bought
         ? null
         : entry.Matches[0];
     }
@@ -425,11 +425,11 @@ namespace MarketTerror.GUI.ShoppingList
     private static string ListingCountText(ListingEntry entry)
     {
       var total = entry.Matches.Count;
-      var live = entry.Live.Count();
+      var gone = entry.Matches.Count(m => m.Gone);
 
       var listings = total == 1 ? "1 listing" : $"{total} listings";
 
-      return live == total ? listings : $"{listings}, {total - live} gone";
+      return gone == 0 ? listings : $"{listings}, {gone} gone";
     }
 
     /// <summary>
